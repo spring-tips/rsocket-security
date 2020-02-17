@@ -1,5 +1,6 @@
 package com.example.rsocketclient;
 
+import io.rsocket.metadata.WellKnownMimeType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -14,7 +15,11 @@ import org.springframework.context.PayloadApplicationEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.security.rsocket.metadata.BasicAuthenticationEncoder;
+import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder;
 import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
+import org.springframework.util.MimeType;
+import org.springframework.util.MimeTypeUtils;
+import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
@@ -26,7 +31,7 @@ public class RsocketClientApplication {
 
 	@Bean
 	RSocketStrategiesCustomizer rSocketStrategiesCustomizer() {
-		return strategies -> strategies.encoder(new BasicAuthenticationEncoder());
+		return strategies -> strategies.encoder(new SimpleAuthenticationEncoder());
 	}
 
 	@Bean
@@ -40,25 +45,15 @@ public class RsocketClientApplication {
 	ApplicationListener<ApplicationReadyEvent> secureClient(RSocketRequester localhost) {
 		return event -> {
 			var credentials = new UsernamePasswordMetadata("user", "password");
+			var mimeType = MimeTypeUtils.parseMimeType(
+				WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
 			localhost
 				.route("greeting")
-				.metadata(credentials, BASIC_AUTHENTICATION_MIME_TYPE)
-				.data(new GreetingRequest("Rob"))
+				.metadata(credentials, mimeType)
+				.data(Mono.empty())
 				.retrieveMono(GreetingResponse.class)
 				.subscribe(gr -> log.info("secure response: " + gr));
 		};
-	}
-
-	@Bean
-	ApplicationListener<ApplicationReadyEvent> client(RSocketRequester.Builder builder) {
-		return event -> Objects
-			.requireNonNull(builder
-			.connectTcp("localhost", 8888)
-			.block())
-			.route("greetings")
-			.data(new GreetingRequest("Spring Tips"))
-			.retrieveFlux(GreetingResponse.class)
-			.subscribe(gr -> log.info("rsocket client: " + gr.getMessage()));
 	}
 
 	@SneakyThrows

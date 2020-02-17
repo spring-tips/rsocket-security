@@ -13,17 +13,17 @@ import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.stereotype.Controller;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.time.Instant;
-import java.util.stream.Stream;
 
 @SpringBootApplication
 public class RsocketServiceApplication {
@@ -42,21 +42,16 @@ class GreetingService {
 	}
 
 	@MessageMapping("greeting")
-	Mono<GreetingResponse> greeting(GreetingRequest name) {
-		return Mono.just(greet(name.getName()));
-	}
-
-	@MessageMapping("greetings")
-	Flux<GreetingResponse> greetings(GreetingRequest request) {
-		return Flux
-			.fromStream(Stream.generate(() -> greet(request.getName())))
-			.delayElements(Duration.ofSeconds(1));
+	Mono<GreetingResponse> greeting() {
+//		var name = SecurityContextHolder.getContext().getAuthentication().getName();
+		return Mono.just(greet("yo"));
 	}
 
 	@MessageMapping("error-signal")
-	Mono<String> handleAndReturnError(String payload) {
+	Mono<String> handleAndReturnError() {
 		return Mono.error(new IllegalArgumentException("Invalid input error"));
 	}
+
 
 	@MessageExceptionHandler(IllegalArgumentException.class)
 	Mono<String> onIllegalArgumentException(
@@ -78,7 +73,7 @@ class RSocketSecurityConfiguration {
 					.route("greeting").authenticated()
 					.anyExchange().permitAll()
 			)
-			.basicAuthentication(Customizer.withDefaults())
+			.simpleAuthentication(Customizer.withDefaults())
 			.build();
 	}
 
