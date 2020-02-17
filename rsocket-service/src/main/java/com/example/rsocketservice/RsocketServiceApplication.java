@@ -1,6 +1,5 @@
 package com.example.rsocketservice;
 
-import io.rsocket.ConnectionSetupPayload;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,17 +11,16 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.rsocket.annotation.ConnectMapping;
+import org.springframework.messaging.rsocket.RSocketStrategies;
+import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.messaging.handler.invocation.reactive.AuthenticationPrincipalArgumentResolver;
 import org.springframework.security.rsocket.core.PayloadSocketAcceptorInterceptor;
 import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Mono;
@@ -46,18 +44,19 @@ class GreetingService {
 		return new GreetingResponse("Hello " + name + " @ " + Instant.now());
 	}
 
-
 	@MessageMapping("greeting")
-	Mono<GreetingResponse> greeting(@Headers Map<String, Object> headers) {
-		headers.forEach((k, v) -> log.info(k + '=' + v));
-		return ReactiveSecurityContextHolder.getContext().map(sc -> sc.getAuthentication().getName()).map(this::greet);
+	Mono<GreetingResponse> greeting(
+		@AuthenticationPrincipal Mono<UserDetails> userDetails,
+		@Headers Map<String, Object> headers) {
+		headers.forEach((k, v) -> log.info("header: " + k + '=' + v));
+		return userDetails.map(UserDetails::getUsername).map(this::greet);
+//		return ReactiveSecurityContextHolder.getContext().map(sc -> sc.getAuthentication().getName()).map(this::greet);
 	}
 
 	@MessageMapping("error-signal")
 	Mono<String> handleAndReturnError() {
 		return Mono.error(new IllegalArgumentException("Invalid input error"));
 	}
-
 
 	@MessageExceptionHandler(IllegalArgumentException.class)
 	Mono<String> onIllegalArgumentException(
@@ -70,6 +69,15 @@ class GreetingService {
 @Configuration
 @EnableRSocketSecurity
 class RSocketSecurityConfiguration {
+
+	@Bean
+	RSocketMessageHandler messageHandler(RSocketStrategies rSocketStrategies) {
+		var messageHandler = new RSocketMessageHandler();
+		messageHandler.setRSocketStrategies(rSocketStrategies);
+		messageHandler.getArgumentResolverConfigurer()
+			.addCustomResolver(new AuthenticationPrincipalArgumentResolver());
+		return messageHandler;
+	}
 
 	@Bean
 	PayloadSocketAcceptorInterceptor rsocketInterceptor(RSocketSecurity rsocket) {
