@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
-	<artifactId>rsocket-client</artifactId>
+	<artifactId>greetings-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>rsocket-client</name>
+	<name>greetings-service</name>
 	<description>Demo project for Spring Boot</description>
 
 	<properties>

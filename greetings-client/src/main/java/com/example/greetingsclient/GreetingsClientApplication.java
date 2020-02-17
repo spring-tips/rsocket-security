@@ -1,4 +1,4 @@
-package com.example.rsocketclient;
+package com.example.greetingsclient;
 
 import io.rsocket.metadata.WellKnownMimeType;
 import lombok.AllArgsConstructor;
@@ -11,23 +11,28 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.rsocket.messaging.RSocketStrategiesCustomizer;
 import org.springframework.context.ApplicationListener;
-import org.springframework.context.PayloadApplicationEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.rsocket.RSocketRequester;
-import org.springframework.security.rsocket.metadata.BasicAuthenticationEncoder;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.rsocket.metadata.SimpleAuthenticationEncoder;
 import org.springframework.security.rsocket.metadata.UsernamePasswordMetadata;
 import org.springframework.util.MimeType;
 import org.springframework.util.MimeTypeUtils;
 import reactor.core.publisher.Mono;
 
-import java.util.Objects;
-
-import static org.springframework.security.rsocket.metadata.UsernamePasswordMetadata.BASIC_AUTHENTICATION_MIME_TYPE;
-
 @Log4j2
 @SpringBootApplication
-public class RsocketClientApplication {
+public class GreetingsClientApplication {
+
+	@SneakyThrows
+	public static void main(String[] args) {
+		SpringApplication.run(GreetingsClientApplication.class, args);
+		System.in.read();
+	}
+
+	private final MimeType mimeType = MimeTypeUtils.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
+
+	private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("jlong", "pw");
 
 	@Bean
 	RSocketStrategiesCustomizer rSocketStrategiesCustomizer() {
@@ -37,40 +42,23 @@ public class RsocketClientApplication {
 	@Bean
 	RSocketRequester rSocketRequester(RSocketRequester.Builder builder) {
 		return builder
-//			.setupMetadata(this.credentials, this.mimeType)
+//			.setupMetadata(this.credentials , this.mimeType)
 			.connectTcp("localhost", 8888)
 			.block();
 	}
 
-	private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("user", "password");
-
-	private final MimeType mimeType = MimeTypeUtils
-		.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
-
 	@Bean
-	ApplicationListener<ApplicationReadyEvent> secureClient(RSocketRequester localhost) {
+	ApplicationListener<ApplicationReadyEvent> ready(RSocketRequester greetings) {
 		return event ->
-			localhost
-			.route("greeting")
-			.metadata(credentials, mimeType)
-			.data(Mono.empty())
-			.retrieveMono(GreetingResponse.class)
-			.subscribe(gr -> log.info("secure response: " + gr));
+			greetings
+				.route("greetings")
+				.metadata(this.credentials, this.mimeType)
+				.data(Mono.empty())
+				.retrieveFlux(GreetingResponse.class)
+				.subscribe(gr -> log.info("secured response: " + gr.toString()));
 	}
 
-	@SneakyThrows
-	public static void main(String[] args) {
-		SpringApplication.run(RsocketClientApplication.class, args);
-		System.in.read();
-	}
 
-}
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-class GreetingRequest {
-	private String name;
 }
 
 
@@ -80,3 +68,5 @@ class GreetingRequest {
 class GreetingResponse {
 	private String message;
 }
+
+

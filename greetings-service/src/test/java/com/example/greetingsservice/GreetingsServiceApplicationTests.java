@@ -1,10 +1,10 @@
-package com.example.rsocketclient;
+package com.example.greetingsservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class RsocketClientApplicationTests {
+class GreetingsServiceApplicationTests {
 
 	@Test
 	void contextLoads() {
