@@ -58,7 +58,7 @@ class GreetingService {
 		return Mono.error(new IllegalArgumentException("Invalid input error"));
 	}
 
-	@MessageExceptionHandler(IllegalArgumentException.class)
+	@MessageExceptionHandler(NullPointerException.class)
 	Mono<String> onIllegalArgumentException(
 		IllegalArgumentException iae) {
 		log.error(iae);
