@@ -37,23 +37,25 @@ public class RsocketClientApplication {
 	@Bean
 	RSocketRequester rSocketRequester(RSocketRequester.Builder builder) {
 		return builder
+//			.setupMetadata(this.credentials, this.mimeType)
 			.connectTcp("localhost", 8888)
 			.block();
 	}
 
+	private final UsernamePasswordMetadata credentials = new UsernamePasswordMetadata("user", "password");
+
+	private final MimeType mimeType = MimeTypeUtils
+		.parseMimeType(WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
+
 	@Bean
 	ApplicationListener<ApplicationReadyEvent> secureClient(RSocketRequester localhost) {
-		return event -> {
-			var credentials = new UsernamePasswordMetadata("user", "password");
-			var mimeType = MimeTypeUtils.parseMimeType(
-				WellKnownMimeType.MESSAGE_RSOCKET_AUTHENTICATION.getString());
+		return event ->
 			localhost
-				.route("greeting")
-				.metadata(credentials, mimeType)
-				.data(Mono.empty())
-				.retrieveMono(GreetingResponse.class)
-				.subscribe(gr -> log.info("secure response: " + gr));
-		};
+			.route("greeting")
+			.metadata(credentials, mimeType)
+			.data(Mono.empty())
+			.retrieveMono(GreetingResponse.class)
+			.subscribe(gr -> log.info("secure response: " + gr));
 	}
 
 	@SneakyThrows

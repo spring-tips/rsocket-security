@@ -1,5 +1,6 @@
 package com.example.rsocketservice;
 
+import io.rsocket.ConnectionSetupPayload;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,12 +9,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.MessageExceptionHandler;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.rsocket.annotation.ConnectMapping;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.rsocket.EnableRSocketSecurity;
 import org.springframework.security.config.annotation.rsocket.RSocketSecurity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.MapReactiveUserDetailsService;
@@ -24,6 +28,7 @@ import org.springframework.stereotype.Controller;
 import reactor.core.publisher.Mono;
 
 import java.time.Instant;
+import java.util.Map;
 
 @SpringBootApplication
 public class RsocketServiceApplication {
@@ -41,10 +46,11 @@ class GreetingService {
 		return new GreetingResponse("Hello " + name + " @ " + Instant.now());
 	}
 
+
 	@MessageMapping("greeting")
-	Mono<GreetingResponse> greeting() {
-//		var name = SecurityContextHolder.getContext().getAuthentication().getName();
-		return Mono.just(greet("yo"));
+	Mono<GreetingResponse> greeting(@Headers Map<String, Object> headers) {
+		headers.forEach((k, v) -> log.info(k + '=' + v));
+		return ReactiveSecurityContextHolder.getContext().map(sc -> sc.getAuthentication().getName()).map(this::greet);
 	}
 
 	@MessageMapping("error-signal")
