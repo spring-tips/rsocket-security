@@ -6,7 +6,7 @@ Josh Long
 @starbuxman 
 -->
 
-# Rsocket and Spring Security
+# Spring Tips: Rsocket and Spring Security
 
 Hi Spring fans! In this installment, we look at using Spring Security and RSocket together. RSocket is a payload and platform agonostic wire protocol developed by engineers at Netflix and Facebook that supports the Reactive Streams concepts on the wire. The protocol is a stateful-connection centric protocol: a requester node connects and stays connected to another responder node. Once connected, either side can transmit information at any time. Connections are multiplexed, meaning one connection can handle multiple requests. RSocket is designed from the ground up to support propagating out-of-band information like headers and service health information, in addition to the payloads themselves. So, one user may use the connection with one service, or multiple users may use the same connection. 
 
